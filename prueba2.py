@@ -12,6 +12,7 @@ from PIL import Image        # Biblioteca Pillow para abrir y manejar imágenes 
 
 # Cargar archivo Excel
 df = pd.read_excel("Calificaciones 1 y 2 parcial Plantel Xonacatlán.xlsx")
+
 # Configurar Streamlit
 st.set_page_config(layout="wide", page_title="Análisis de Calificaciones")
 st.title("📊 Análisis de Calificaciones por Asignatura")
@@ -82,12 +83,14 @@ rango_bins = [5, 6, 7, 8, 9, 10.1]
 rango_labels = ['5-6', '6-7', '7-8', '8-9', '9-10']
 
 calificaciones_dict = {}
+estadisticas_dict = {}
 
 cols = st.columns(2)  # Dividimos en 2 columnas horizontales
 
 for idx, parcial in enumerate(['P1', 'P2']):
     calificaciones = grupo_df[parcial].dropna()
     calificaciones_dict[parcial] = calificaciones
+    
 
     if calificaciones.empty:
         cols[idx].warning(f"⚠️ Estadísticas de {parcial}: No disponibles")
@@ -108,6 +111,20 @@ for idx, parcial in enumerate(['P1', 'P2']):
     rango = maximo - minimo
     total = calificaciones.count()
 
+     # ✅ Luego de lso calculos los guardamos en el diccionario
+    estadisticas_dict[parcial] = {
+        "media": media,
+        "mediana": mediana,
+        "moda": moda,
+        "varianza": varianza,
+        "q1": q1,
+        "q2": q2,
+        "q3": q3,
+        "max": maximo,
+        "min": minimo,
+        "rango": rango,
+        "total": total
+    }
     # HTML con estilos para las tablas
     tabla_html = f"""
     <style>
@@ -159,9 +176,198 @@ for idx, parcial in enumerate(['P1', 'P2']):
     # Mostrar la tabla en su columna correspondiente
     cols[idx].markdown(tabla_html, unsafe_allow_html=True)
 
+# --- CONTENEDOR VISUAL DEL BOT ---
+st.sidebar.markdown("---")
+st.sidebar.markdown("""
+<div style='background-color:#1e1e1e; padding:15px; border-radius:12px; border-left:5px solid #00ffd5; margin-bottom:10px;'>
+    <h3 style='color:#00ffd5;'>🤖 EduBot</h3>
+    <p style='color:white; font-size:14px;'>¡Hola! Soy EduBot, tu asistente de estadísticas. Hazme preguntas como:</p>
+    <ul style='color:white; font-size:13px;'>
+        <li>¿Qué es la media?</li>
+        <li>¿Qué significa boxplot?</li>
+        <li>¿Para qué sirve la varianza?</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
 
+# Activar el bot
+bot_activado = st.sidebar.checkbox("💬 Mostrar Bot de Ayuda")
+
+if bot_activado:
+    st.sidebar.markdown("### ✏️ Escribe tu duda o elige una sugerencia:")
+
+    # --- Pregunta rápida por botones ---
+    pregunta = ""
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("📊 Media"):
+            pregunta = "media"
+        elif st.button("📈 Mediana"):
+            pregunta = "mediana"
+        elif st.button("📦 Boxplot"):
+            pregunta = "boxplot"
+    with col2:
+        if st.button("📌 Moda"):
+            pregunta = "moda"
+        elif st.button("📉 Varianza"):
+            pregunta = "varianza"
+
+    # Campo para escribir texto libre
+    if pregunta == "":
+        pregunta = st.sidebar.text_input("O escribe tu pregunta:", key="input_pregunta")
+
+    # --- RESPUESTAS DETALLADAS DEL BOT ---
+    if pregunta:
+        pregunta = pregunta.lower()
+
+        with st.sidebar:
+            with st.spinner("Pensando en una respuesta... 🤔"):
+                import time
+                time.sleep(1)  # Simulación realista
+
+        if "media" in pregunta:
+            p1 = estadisticas_dict['P1']['media']
+            p2 = estadisticas_dict['P2']['media']
+            
+            st.sidebar.markdown("📊 **Media**")
+            st.sidebar.info("La media es el promedio de todas las calificaciones. Nos ayuda a identificar el rendimiento general.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+            
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** La media subió, los valores más frecuentes fueron más altos en P2.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** La media bajó, los valores más repetidos fueron más bajos en P2.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** La media se mantuvo igual en ambos parciales.")
+
+        elif "moda" in pregunta:
+            p1 = estadisticas_dict['P1']['moda']
+            p2 = estadisticas_dict['P2']['moda']
+            
+            st.sidebar.markdown("📌 **Moda**")
+            st.sidebar.info("La moda es el valor que más se repite. Si cambia entre parciales, indica un cambio en las calificaciones más comunes.")
+            st.sidebar.success(f"🟢 **P1:** {p1:.2f}  \n🔵 **P2:** {p2:.2f}")
+            
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** La moda subió, los valores más frecuentes fueron más altos en P2.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** La moda bajó, los valores más repetidos fueron más bajos en P2.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** La moda se mantuvo igual en ambos parciales.")
+
+        elif "mediana" in pregunta:
+            p1 = estadisticas_dict['P1']['mediana']
+            p2 = estadisticas_dict['P2']['mediana']
+            
+            st.sidebar.markdown("📈 **Mediana**")
+            st.sidebar.info("Divide los datos ordenados por la mitad. Menos sensible a extremos que la media.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+            
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** La mediana subió, los valores más frecuentes fueron más altos en P2.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** La mediana bajó, los valores más repetidos fueron más bajos en P2.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** La mediana se mantuvo igual en ambos parciales.")
+
+        elif "varianza" in pregunta:
+            p1 = estadisticas_dict['P1']['varianza']
+            p2 = estadisticas_dict['P2']['varianza']
+            
+            st.sidebar.markdown("📉 **Varianza**")
+            st.sidebar.info("Mide qué tanto se alejan los datos de la media. Alta varianza = calificaciones más dispersas.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+            
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** La varianza aumentó en P2, lo que indica mayor variación entre las calificaciones del grupo.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** La varianza disminuyó, lo que sugiere que las calificaciones estuvieron más agrupadas en P2.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** La varianza se mantuvo igual, no hubo cambio en la dispersión del rendimiento entre parciales.")
+
+        elif "rango" in pregunta:
+            p1 = estadisticas_dict['P1']['rango']
+            p2 = estadisticas_dict['P2']['rango']
+
+            st.sidebar.markdown("📏 **Rango (Máx - Mín)**")
+            st.sidebar.info("El rango muestra qué tan dispersas están las calificaciones, comparando la más alta con la más baja.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** Aumentó el rango en P2, lo que indica mayor variabilidad entre los alumnos.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** Disminuyó el rango en P2, lo que sugiere que las calificaciones fueron más homogéneas.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** El rango se mantuvo igual, la dispersión fue la misma en ambos parciales.")
+
+        elif "q1" in pregunta or "cuartil 1" in pregunta:
+            p1 = estadisticas_dict['P1']['q1']
+            p2 = estadisticas_dict['P2']['q1']
+
+            st.sidebar.markdown("🟪 **Q1 (Primer Cuartil - 25%)**")
+            st.sidebar.info("Indica que el 25% de las calificaciones están por debajo de este valor. Es útil para ver cómo está el rendimiento más bajo.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** El Q1 subió en P2, los alumnos con menor rendimiento mejoraron.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** El Q1 bajó, indicando un desempeño más bajo en el 25% inferior.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** No hubo cambio en el Q1, el rendimiento inferior se mantuvo igual.")
+
+        elif "q2" in pregunta or "cuartil 2" in pregunta:
+            p1 = estadisticas_dict['P1']['q2']
+            p2 = estadisticas_dict['P2']['q2']
+            
+            st.sidebar.markdown("🔵 **Q2 (Mediana 50%)**")
+            st.sidebar.info("Mitad de alumnos sacó menos y mitad más que este valor.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+            
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** El Q2 subió en P2, los alumnos con menor rendimiento mejoraron.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** El Q2 bajó, indicando un desempeño más bajo en el 50% inferior.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** No hubo cambio en el Q2, el rendimiento inferior se mantuvo igual.")
+
+        elif "q3" in pregunta or "cuartil 3" in pregunta:
+            p1 = estadisticas_dict['P1']['q3']
+            p2 = estadisticas_dict['P2']['q3']
+            
+            st.sidebar.markdown("🟥 **Q3 (75%)**")
+            st.sidebar.info("El 75% de los alumnos sacó menos o igual que este valor.")
+            st.sidebar.success(f"🟢 P1: {p1:.2f}  \n🔵 P2: {p2:.2f}")
+            
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** El Q3 subió en P2, los alumnos con menor rendimiento mejoraron.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** El Q3 bajó, indicando un desempeño más bajo en el 75% inferior.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** No hubo cambio en el Q3, el rendimiento inferior se mantuvo igual.")
+
+        elif "total" in pregunta or "alumnos" in pregunta:
+            p1 = estadisticas_dict['P1']['total']
+            p2 = estadisticas_dict['P2']['total']
+
+            st.sidebar.markdown("👥 **Total de alumnos con calificación registrada**")
+            st.sidebar.info("Refleja cuántos estudiantes fueron evaluados en cada parcial. Las diferencias pueden deberse a inasistencias, faltas de entrega o errores en captura de datos.")
+            st.sidebar.success(f"🟢 P1: {p1}  \n🔵 P2: {p2}")
+
+            if p2 > p1:
+                st.sidebar.markdown("📈 **Conclusión:** Más alumnos fueron evaluados en el segundo parcial.")
+            elif p2 < p1:
+                st.sidebar.markdown("📉 **Conclusión:** Menos alumnos tienen calificación en P2. Puede indicar ausencias o datos faltantes.")
+            else:
+                st.sidebar.markdown("➖ **Conclusión:** El número de alumnos evaluados se mantuvo igual en ambos parciales.")
+
+        elif "pdf" in pregunta or "descargar" in pregunta:
+            st.sidebar.info("📄 Puedes generar un PDF con las gráficas y estadísticas actuales usando el botón en la parte del final de las graficas.")
+        else:
+            st.sidebar.warning("❓ No encontré una respuesta. Intenta con: media, varianza, PDF, boxplot, etc.")
+            
 # ----------- Histograma  ------------------
 st.markdown("## 📊 Histograma Calificaciones")
+
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 fig.patch.set_facecolor('#121212')  # fondo oscuro
 
@@ -193,10 +399,27 @@ for idx, parcial in enumerate(['P1', 'P2']):
 plt.tight_layout()
 st.pyplot(fig)
 
+# Aquí agregas la explicación/comparativa abajo de la gráfica
+st.markdown("""
+### 📋 Análisis del Histograma
+- El histograma nos muestra la frecuencia de calificaciones por rango para ambos parciales.
+- Puedes observar cómo se distribuyen las calificaciones en P1 y P2, y si hubo cambios en la concentración o dispersión.
+""")
 
+# Ejemplo conclusión simple con media para agregar info extra:
+p1_media = estadisticas_dict['P1']['media']
+p2_media = estadisticas_dict['P2']['media']
+
+if p2_media > p1_media:
+    st.success("✅ La media en P2 aumentó, lo que indica una mejora general en las calificaciones.")
+elif p2_media < p1_media:
+    st.warning("⚠️ La media en P2 disminuyó, lo que podría indicar un rendimiento más bajo.")
+else:
+    st.info("➖ La media se mantuvo estable entre ambos parciales.")
+
+
+# ------------------ Gráfica de pastel -------------------
 st.markdown("## 🥧 Gráficas de Pastel Calificaciones")
-
-# ------------------ Gráficas -------------------
 fig, axes = plt.subplots(1, 2, figsize=(12, 6), facecolor='#121212')
 for ax in axes:
     ax.set_facecolor('#121212')  # fondo oscuro
@@ -246,6 +469,29 @@ for idx, parcial in enumerate(['P1', 'P2']):
 plt.tight_layout()
 st.pyplot(fig)
 
+st.markdown("### 📋 Análisis de la Gráfica de Pastel")
+st.markdown("""
+- Las gráficas de pastel muestran la proporción de alumnos en cada rango de calificación para P1 y P2.
+- Permiten visualizar fácilmente qué porcentaje de alumnos está en rangos altos, medios o bajos.
+- Sirven para comparar la distribución de calificaciones entre ambos parciales y detectar mejoras o retrocesos.
+""")
+
+# Ejemplo conclusión simple basada en la proporción de aprobados (>= 60)
+p1_aprobados = calificaciones_dict['P1'][calificaciones_dict['P1'] >= 60].count()
+p2_aprobados = calificaciones_dict['P2'][calificaciones_dict['P2'] >= 60].count()
+total_p1 = estadisticas_dict['P1']['total']
+total_p2 = estadisticas_dict['P2']['total']
+
+porc_aprobados_p1 = (p1_aprobados / total_p1)*100 if total_p1 > 0 else 0
+porc_aprobados_p2 = (p2_aprobados / total_p2)*100 if total_p2 > 0 else 0
+
+if porc_aprobados_p2 > porc_aprobados_p1:
+    st.success(f"✅ La proporción de alumnos aprobados aumentó de {porc_aprobados_p1:.1f}% en P1 a {porc_aprobados_p2:.1f}% en P2.")
+elif porc_aprobados_p2 < porc_aprobados_p1:
+    st.warning(f"⚠️ La proporción de alumnos aprobados disminuyó de {porc_aprobados_p1:.1f}% en P1 a {porc_aprobados_p2:.1f}% en P2.")
+else:
+    st.info(f"➖ La proporción de alumnos aprobados se mantuvo estable en {porc_aprobados_p1:.1f}%.")
+    
 # ------------------ Tablas -------------------
 col1, col2 = st.columns(2)
 col1.markdown("#### P1")
@@ -309,6 +555,41 @@ if not grupo_df[['P1', 'P2']].dropna(how='all').empty:
     ax.set_axisbelow(True)
 
     st.pyplot(fig)
+
+    st.markdown("### 📋 Análisis del Boxplot")
+    st.markdown("""
+    - El boxplot resume la distribución de las calificaciones, mostrando la mediana, dispersión y posibles valores atípicos.
+    - La caja indica dónde está el 50% central de las calificaciones (entre Q1 y Q3).
+    - Si la caja o los bigotes cambian entre P1 y P2, significa cambios en la variabilidad o concentración de calificaciones.
+    """)
+
+    # Datos relevantes para conclusión
+    p1_q1 = estadisticas_dict['P1']['q1']
+    p1_q3 = estadisticas_dict['P1']['q3']
+    p2_q1 = estadisticas_dict['P2']['q1']
+    p2_q3 = estadisticas_dict['P2']['q3']
+
+    # Comparación simple de rango intercuartílico (IQR)
+    iqr_p1 = p1_q3 - p1_q1
+    iqr_p2 = p2_q3 - p2_q1
+
+    if iqr_p2 < iqr_p1:
+        st.success("✅ La dispersión (IQR) disminuyó en P2, indicando que las calificaciones se concentraron más alrededor de la mediana.")
+    elif iqr_p2 > iqr_p1:
+        st.warning("⚠️ La dispersión (IQR) aumentó en P2, lo que indica mayor variabilidad en las calificaciones.")
+    else:
+        st.info("➖ La dispersión (IQR) se mantuvo estable entre ambos parciales.")
+
+    # Comparar medianas
+    p1_mediana = estadisticas_dict['P1']['mediana']
+    p2_mediana = estadisticas_dict['P2']['mediana']
+
+    if p2_mediana > p1_mediana:
+        st.success("✅ La mediana aumentó en P2, sugiriendo una mejora general en el rendimiento.")
+    elif p2_mediana < p1_mediana:
+        st.warning("⚠️ La mediana disminuyó en P2, indicando posible bajo rendimiento.")
+    else:
+        st.info("➖ La mediana se mantuvo igual entre ambos parciales.")
 
     # leyenda descriptiva
     with st.expander("📌 ¿Qué muestra este boxplot?"):
